@@ -1,0 +1,962 @@
+{
+  "info": {
+    "name": "Incident Tracker API",
+    "description": "Comprehensive Postman collection for the Incident Tracker backend API. All responses follow the standard envelope { success, data, message }. Use the Login request to set the collection auth token, then run requests in order; variables like incidentId and userId are auto-populated from responses.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "incidentId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "description": "Service liveness and health endpoints. Useful for uptime checks and smoke tests.",
+      "item": [
+        {
+          "name": "Root Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": "Returns a basic health payload with server uptime."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"ok\",\n  \"timestamp\": \"2026-01-08T20:05:12.123Z\",\n  \"uptime\": 12345.67\n}"
+            }
+          ]
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Returns the same health payload as the root endpoint."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"ok\",\n  \"timestamp\": \"2026-01-08T20:05:12.123Z\",\n  \"uptime\": 12345.67\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints. Login sets the bearer token and userId variables for the collection.",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.accessToken) {",
+                  "  pm.collectionVariables.set('authToken', json.data.accessToken);",
+                  "}",
+                  "if (json && json.data && json.data.user && json.data.user.id) {",
+                  "  pm.collectionVariables.set('userId', json.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates a user and returns a JWT token and user profile."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"<jwt>\",\n    \"user\": {\n      \"id\": \"9a0d3b9e-1c52-4b6e-a1f0-6ef4b9ad67a0\",\n      \"email\": \"admin@example.com\",\n      \"role\": \"ADMIN\"\n    }\n  },\n  \"message\": \"Login successful\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('userId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Returns the authenticated user's profile (requires Bearer token)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"9a0d3b9e-1c52-4b6e-a1f0-6ef4b9ad67a0\",\n    \"email\": \"admin@example.com\",\n    \"role\": \"ADMIN\"\n  },\n  \"message\": \"User retrieved successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Incidents",
+      "description": "Incident lifecycle operations (create, list, update, assign, delete) plus drafts and audit logs.",
+      "item": [
+        {
+          "name": "Create Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('incidentId', json.data.id);",
+                  "}",
+                  "if (json && json.data && json.data.assignedToId) {",
+                  "  pm.collectionVariables.set('userId', json.data.assignedToId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Payment service outage\",\n  \"description\": \"API errors spiking in us-east-1\",\n  \"severity\": \"HIGH\",\n  \"status\": \"OPEN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents"
+              ]
+            },
+            "description": "Creates an incident. Non-admin users are auto-assigned to themselves."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"{{incidentId}}\",\n    \"title\": \"Payment service outage\",\n    \"description\": \"API errors spiking in us-east-1\",\n    \"severity\": \"HIGH\",\n    \"status\": \"OPEN\",\n    \"isDraft\": false,\n    \"userId\": \"{{userId}}\",\n    \"assignedToId\": \"{{userId}}\",\n    \"createdAt\": \"2026-01-08T20:10:00.000Z\",\n    \"updatedAt\": \"2026-01-08T20:10:00.000Z\"\n  },\n  \"message\": \"Incident created successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Incidents (Assigned to Me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const incident = json && json.data && json.data.data && json.data.data[0];",
+                  "if (incident && incident.id) {",
+                  "  pm.collectionVariables.set('incidentId', incident.id);",
+                  "}",
+                  "if (incident && incident.assignedToId) {",
+                  "  pm.collectionVariables.set('userId', incident.assignedToId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Returns incidents assigned to the current user. Admins can also filter by userId."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"data\": [\n      {\n        \"id\": \"{{incidentId}}\",\n        \"title\": \"Payment service outage\",\n        \"description\": \"API errors spiking in us-east-1\",\n        \"severity\": \"HIGH\",\n        \"status\": \"OPEN\",\n        \"isDraft\": false,\n        \"userId\": \"{{userId}}\",\n        \"assignedToId\": \"{{userId}}\",\n        \"createdAt\": \"2026-01-08T20:10:00.000Z\",\n        \"updatedAt\": \"2026-01-08T20:10:00.000Z\",\n        \"user\": { \"id\": \"{{userId}}\", \"email\": \"admin@example.com\" },\n        \"assignedTo\": { \"id\": \"{{userId}}\", \"email\": \"admin@example.com\" }\n      }\n    ],\n    \"total\": 1,\n    \"page\": 1,\n    \"limit\": 10\n  },\n  \"message\": \"Incidents retrieved successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List All Incidents (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const incident = json && json.data && json.data.data && json.data.data[0];",
+                  "if (incident && incident.id) {",
+                  "  pm.collectionVariables.set('incidentId', incident.id);",
+                  "}",
+                  "if (incident && incident.assignedToId) {",
+                  "  pm.collectionVariables.set('userId', incident.assignedToId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/all?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "all"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Admin-only. Lists all incidents, optionally filtered by severity, status, userId, or search."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('incidentId', json.data.id);",
+                  "}",
+                  "if (json && json.data && json.data.assignedToId) {",
+                  "  pm.collectionVariables.set('userId', json.data.assignedToId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}"
+              ]
+            },
+            "description": "Fetch a single incident by ID (assigned users or admins only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('incidentId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"severity\": \"MEDIUM\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}"
+              ]
+            },
+            "description": "Updates incident fields. Assigned users or admins only."
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Incident (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('incidentId', json.data.id);",
+                  "}",
+                  "if (json && json.data && json.data.assignedToId) {",
+                  "  pm.collectionVariables.set('userId', json.data.assignedToId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedToId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}",
+                "assign"
+              ]
+            },
+            "description": "Admin-only. Assigns the incident to a user."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Incident (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('incidentId', '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}"
+              ]
+            },
+            "description": "Admin-only. Deletes an incident and writes a DELETE audit log."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Incident Audit Logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const log = json && json.data && json.data[0];",
+                  "if (log && log.incidentId) {",
+                  "  pm.collectionVariables.set('incidentId', log.incidentId);",
+                  "}",
+                  "if (log && log.userId) {",
+                  "  pm.collectionVariables.set('userId', log.userId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}",
+                "audit"
+              ]
+            },
+            "description": "Returns audit logs for an incident (assigned users or admins only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Auto-save Draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('incidentId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Draft: Payment outage\",\n  \"description\": \"Working details...\",\n  \"severity\": \"LOW\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents/auto-save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "auto-save"
+              ]
+            },
+            "description": "Creates or updates a draft incident for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('incidentId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "draft"
+              ]
+            },
+            "description": "Fetches the current user's draft incident."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('incidentId', '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "draft"
+              ]
+            },
+            "description": "Deletes the current user's draft incident."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "User notification inbox endpoints. Supports pagination and read status updates.",
+      "item": [
+        {
+          "name": "List Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const notification = json && json.data && json.data.data && json.data.data[0];",
+                  "if (notification && notification.id) {",
+                  "  pm.collectionVariables.set('notificationId', notification.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lists notifications for the current user. Supports filtering by read status."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('notificationId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            },
+            "description": "Marks a single notification as read."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all"
+              ]
+            },
+            "description": "Marks all notifications as read."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Admin-only endpoints for user management and audit log review.",
+      "item": [
+        {
+          "name": "List Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const user = json && json.data && json.data.data && json.data.data[0];",
+                  "if (user && user.id) {",
+                  "  pm.collectionVariables.set('userId', user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Admin-only. Lists users with pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('userId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"USER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            },
+            "description": "Admin-only. Creates a new user."
+          },
+          "response": []
+        },
+        {
+          "name": "Change User Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"newPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{userId}}",
+                "password"
+              ]
+            },
+            "description": "Admin-only. Resets a user's password."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{userId}}",
+                "role"
+              ]
+            },
+            "description": "Admin-only. Updates a user's role."
+          },
+          "response": []
+        },
+        {
+          "name": "List Audit Logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const log = json && json.data && json.data.data && json.data.data[0];",
+                  "if (log && log.incidentId) {",
+                  "  pm.collectionVariables.set('incidentId', log.incidentId);",
+                  "}",
+                  "if (log && log.userId) {",
+                  "  pm.collectionVariables.set('userId', log.userId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Admin-only. Lists audit logs across all incidents."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audit Logs By Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const log = json && json.data && json.data[0];",
+                  "if (log && log.incidentId) {",
+                  "  pm.collectionVariables.set('incidentId', log.incidentId);",
+                  "}",
+                  "if (log && log.userId) {",
+                  "  pm.collectionVariables.set('userId', log.userId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit",
+                "{{incidentId}}"
+              ]
+            },
+            "description": "Admin-only. Lists audit logs for a specific incident."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

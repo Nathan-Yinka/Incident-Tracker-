@@ -270,6 +270,9 @@ All endpoints require JWT authentication (except `/api/auth/login`).
 
 Base URL: `http://localhost:3000/api`
 
+Live docs: `http://localhost:3000/docs` (redirects to Postman)
+Postman URL: `https://documenter.getpostman.com/view/28578777/2sBXVeGD9F`
+
 ### Authentication
 - `POST /api/auth/login` - Login with email and password
 - `GET /api/auth/me` - Get current user info (protected)
@@ -481,4 +484,3 @@ npm test
 ## 📄 License
 
 This project is part of a technical assessment and is not licensed for public use.
-

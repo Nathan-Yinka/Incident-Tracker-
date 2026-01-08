@@ -102,6 +102,9 @@ The script works for both local development and Docker environments. It provides
 
 All API endpoints are prefixed with `/api`.
 
+### API Documentation
+- `GET /docs` - Redirects to the live Postman documentation
+
 ### Authentication
 - `POST /api/auth/login` - Login
 - `GET /api/auth/me` - Get current user
@@ -147,4 +150,3 @@ See `prisma/schema.prisma` for database schema definitions.
 - **Dependency Injection**: NestJS DI container
 - **Structured Logging**: Winston logger (no console.log)
 - **Error Handling**: Global exception filter with standardized responses
-

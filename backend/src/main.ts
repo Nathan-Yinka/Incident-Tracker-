@@ -23,6 +23,10 @@ async function bootstrap() {
       uptime: process.uptime(),
     });
   });
+  // Docs redirect (before global prefix)
+  app.getHttpAdapter().get('/docs', (req: Request, res: Response) => {
+    res.redirect('https://documenter.getpostman.com/view/28578777/2sBXVeGD9F');
+  });
 
   app.setGlobalPrefix('api');
 
@@ -66,4 +70,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-
