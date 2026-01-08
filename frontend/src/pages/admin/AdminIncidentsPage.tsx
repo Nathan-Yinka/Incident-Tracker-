@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../services/apiClient';
 import { Incident, ApiResponse, PaginatedResponse, Severity, Status } from '../../types';
+import Loader from '@/components/Loader';
 
 const AdminIncidentsPage = () => {
   const [page, setPage] = useState(1);
