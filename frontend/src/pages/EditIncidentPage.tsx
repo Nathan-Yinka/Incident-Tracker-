@@ -3,11 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto } from '../types';
+import { useAuth } from '../hooks/useAuth';
+import { useUsers } from '../hooks/useUsers';
 
 const EditIncidentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
+  const { data: users } = useUsers();
 
   const { data: incident, isLoading } = useQuery({
     queryKey: ['incident', id],
@@ -21,6 +25,7 @@ const EditIncidentPage = () => {
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState<Severity>(Severity.LOW);
   const [status, setStatus] = useState<Status>(Status.OPEN);
+  const [assignedToId, setAssignedToId] = useState<string>('');
 
   useEffect(() => {
     if (incident) {
@@ -28,6 +33,7 @@ const EditIncidentPage = () => {
       setDescription(incident.description || '');
       setSeverity(incident.severity);
       setStatus(incident.status);
+      setAssignedToId(incident.assignedToId || '');
     }
   }, [incident]);
 
@@ -50,6 +56,7 @@ const EditIncidentPage = () => {
       description: description || undefined,
       severity,
       status,
+      assignedToId: assignedToId || undefined,
     });
   };
 
@@ -123,6 +130,27 @@ const EditIncidentPage = () => {
             ))}
           </select>
         </div>
+
+        {isAdmin && (
+          <div>
+            <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700">
+              Assign To
+            </label>
+            <select
+              id="assignedTo"
+              value={assignedToId}
+              onChange={(e) => setAssignedToId(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            >
+              <option value="">Unassigned</option>
+              {users?.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex space-x-4">
           <button

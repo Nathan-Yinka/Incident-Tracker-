@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { CreateIncidentDto, Incident, ApiResponse, Severity } from '../types';
+import { useAuth } from '../hooks/useAuth';
+import { useUsers } from '../hooks/useUsers';
 
 const CreateIncidentPage = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const { data: users } = useUsers();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState<Severity>(Severity.LOW);
+  const [assignedToId, setAssignedToId] = useState<string>('');
   const [hasDraft, setHasDraft] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [showDraftAlert, setShowDraftAlert] = useState(false);
@@ -29,6 +34,9 @@ const CreateIncidentPage = () => {
       setHasDraft(true);
       setDraftId(draft.id);
       setShowDraftAlert(true);
+      if (draft.assignedToId) {
+        setAssignedToId(draft.assignedToId);
+      }
     } else {
       setHasDraft(false);
       setDraftId(null);
@@ -75,6 +83,7 @@ const CreateIncidentPage = () => {
           title: title.trim() || undefined,
           description: description.trim() || undefined,
           severity,
+          assignedToId: assignedToId || undefined,
         });
       }
     }, 2000);
@@ -108,6 +117,7 @@ const CreateIncidentPage = () => {
       description,
       severity,
       isDraft: false,
+      assignedToId: assignedToId || undefined,
     });
   };
 
@@ -116,6 +126,7 @@ const CreateIncidentPage = () => {
       setTitle(draft.title);
       setDescription(draft.description || '');
       setSeverity(draft.severity);
+      setAssignedToId(draft.assignedToId || '');
       setShowDraftAlert(false);
     }
   };
@@ -125,6 +136,7 @@ const CreateIncidentPage = () => {
     setTitle('');
     setDescription('');
     setSeverity(Severity.LOW);
+    setAssignedToId('');
     setShowDraftAlert(false);
   };
 
@@ -193,6 +205,28 @@ const CreateIncidentPage = () => {
             <option value={Severity.HIGH}>High</option>
           </select>
         </div>
+
+        {isAdmin && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
+            <select
+              value={assignedToId}
+              onChange={(e) => {
+                setAssignedToId(e.target.value);
+                handleAutoSave();
+              }}
+              onBlur={handleAutoSave}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+            >
+              <option value="">Unassigned</option>
+              {users?.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {autoSaveMutation.isPending && (
           <div className="text-sm text-gray-500 mb-4">Saving draft...</div>

@@ -14,7 +14,6 @@ A production-ready full-stack incident tracking system built with NestJS and Rea
 - [Architecture](#architecture)
 - [Assumptions & Trade-offs](#assumptions--trade-offs)
 - [Future Improvements](#future-improvements)
-- [License](#license)
 
 ## 🛠️ Tech Stack
 
@@ -87,8 +86,8 @@ A production-ready full-stack incident tracking system built with NestJS and Rea
 
 # 2. Set up environment variables
 cp backend/.env.example backend/.env    # Backend configuration (required)
-cp frontend/.env.example frontend/.env  # Frontend configuration (for local dev)
-cp .env.example .env                    # Docker build args (for frontend Docker build)
+# Note: Frontend .env is only needed for local dev (not Docker)
+# Docker automatically sets VITE_API_URL in docker-compose.yml build args
 
 # 3. Start all services
 docker-compose up --build
@@ -105,6 +104,7 @@ docker-compose exec backend npm run prisma:seed
 # 5. Access the application
 # Frontend: http://localhost:3001
 # Backend API: http://localhost:3000/api
+# Backend Health Check: http://localhost:3000/ (root URL)
 ```
 
 ### Local Development
@@ -188,24 +188,21 @@ npm run prisma:studio      # Open Prisma Studio (database GUI)
 
 ## 🔧 Environment Variables
 
-**📌 Important**: There are **3 different `.env.example` files** for different purposes:
+**📌 Important**: There are **2 different `.env.example` files** for different purposes:
 
-1. **Root `.env.example`** → For Docker build arguments (frontend only)
-   - Used by `docker-compose.yml` to pass `VITE_API_URL` to frontend Docker build
-   - Only needed when using Docker
-
-2. **`backend/.env.example`** → Backend application configuration (always needed)
+1. **`backend/.env.example`** → Backend application configuration (required)
    - Contains: Database URL, JWT secret, port, admin credentials, logging config
-   - Used by both local development and Docker
+   - Used by both local development and Docker (via `env_file` in docker-compose.yml)
+   - **Required**: Copy to `backend/.env` and configure
 
-3. **`frontend/.env.example`** → Frontend configuration (local dev only)
+2. **`frontend/.env.example`** → Frontend configuration (local development only)
    - Contains: `VITE_API_URL` for local development
-   - NOT used in Docker (Docker uses root `.env` for build args instead)
+   - **Only needed for local development** (when running frontend with `npm run dev`)
+   - **NOT used in Docker** - Docker uses build args set directly in `docker-compose.yml`
 
-**Why multiple files?**
-- Backend and frontend need different variables
-- Docker needs frontend env vars at **build time** (root `.env`)
-- Local dev needs frontend env vars at **runtime** (`frontend/.env`)
+**How it works:**
+- **Docker**: `docker-compose.yml` sets `VITE_API_URL: http://backend:3000` directly as a build argument (no `.env` file needed)
+- **Local Dev**: Use `frontend/.env` with `VITE_API_URL="http://localhost:3000"`
 
 ### Backend (`.env`)
 
@@ -213,8 +210,8 @@ npm run prisma:studio      # Open Prisma Studio (database GUI)
 # Database Configuration
 # For local development:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/incident_tracker?schema=public"
-# For Docker:
-# DATABASE_URL="postgresql://postgres:postgres@postgres:5432/incident_tracker?schema=public"
+# Note: In Docker, DATABASE_URL is automatically set in docker-compose.yml environment section
+# You don't need to change this value when using Docker
 
 # JWT Configuration
 JWT_SECRET="your-super-secret-jwt-key-change-in-production-min-32-chars"
@@ -238,24 +235,24 @@ ADMIN_PASSWORD="password123"
 
 ```env
 # API Configuration
-# For local development (when running backend locally):
+# IMPORTANT: This file is for LOCAL DEVELOPMENT ONLY
+# When using Docker Compose, VITE_API_URL is set automatically via build args
+# in docker-compose.yml to use the backend service name: http://backend:3000
+#
+# For local development (when running backend locally with npm run dev):
 VITE_API_URL="http://localhost:3000"
-
-# For Docker (if using nginx proxy):
-# VITE_API_URL="http://localhost:3001"
-
-# For Docker (direct backend connection):
-# VITE_API_URL="http://backend:3000"
 ```
 
-**Note**: For Docker builds, `VITE_API_URL` must be set in the root `.env` file (read by docker-compose) or directly in `docker-compose.yml` build args, as Vite requires environment variables at build time.
+**How it works in Docker:**
+- `docker-compose.yml` sets `VITE_API_URL: http://backend:3000` directly as a build argument (hardcoded, no `.env` file needed)
+- The frontend code detects this and automatically uses a relative URL `/api` instead
+- Nginx (in the frontend container) proxies all `/api/*` requests to `http://backend:3000/api/*`
+- This allows the browser to make requests to the same origin (`http://localhost:3001/api/*`) which nginx forwards to the backend
+- This ensures the frontend works correctly both in Docker (via nginx proxy) and in local development (direct connection)
 
-### Root (`.env` - for Docker build args)
-
-```env
-# Frontend Build Arguments (for Docker)
-VITE_API_URL=http://backend:3000
-```
+**Summary:**
+- **Docker**: No frontend `.env` file needed - `VITE_API_URL` is set in `docker-compose.yml` build args
+- **Local Dev**: Create `frontend/.env` with `VITE_API_URL="http://localhost:3000"`
 
 ## 🔐 Default Credentials
 
@@ -283,8 +280,10 @@ Base URL: `http://localhost:3000/api`
 - `POST /api/incidents` - Create new incident
 - `GET /api/incidents/:id` - Get incident details
 - `PATCH /api/incidents/:id` - Update incident
-- `POST /api/incidents/auto-save` - Auto-save draft
+- `PATCH /api/incidents/:id/assign` - Assign incident to user (admin only)
+- `POST /api/incidents/auto-save` - Auto-save draft (debounced on input blur)
 - `DELETE /api/incidents/:id` - Delete incident (admin only)
+- `DELETE /api/incidents/draft` - Delete user's draft
 - `GET /api/incidents/:id/audit` - Get audit trail for incident
 - `GET /api/incidents/all` - Get all incidents (admin only)
 
@@ -302,7 +301,8 @@ Base URL: `http://localhost:3000/api`
 - `PATCH /api/notifications/read-all` - Mark all as read
 
 ### Health
-- `GET /api/health` - Health check endpoint
+- `GET /` - Health check endpoint at root URL (returns status, timestamp, uptime)
+- `GET /api/health` - Health check endpoint (same as root)
 
 ## 🏗️ Architecture
 
@@ -347,7 +347,9 @@ Base URL: `http://localhost:3000/api`
 - React Hook Form for form state
 - Context API for authentication state
 
-**API Client**: Centralized Axios instance with interceptors for authentication and error handling.
+**API Client**: Centralized Axios instance with interceptors for authentication and error handling. Automatically uses relative URLs (`/api`) in Docker (via nginx proxy) and full URLs in local development.
+
+**Nginx Proxy**: The frontend Docker container uses Nginx to serve static files and proxy API requests. All `/api/*` requests are forwarded to the backend service at `http://backend:3000/api/*`.
 
 **Type Safety**: Full TypeScript coverage with no `any` types. All API responses and data structures are typed.
 
@@ -463,11 +465,20 @@ npm test
 
 ## 🚢 Production Deployment
 
-1. Update environment variables for production
+1. Update environment variables for production (especially `JWT_SECRET`, `ADMIN_PASSWORD`, `DATABASE_URL`)
 2. Build Docker images: `docker-compose build`
-3. Start services: `docker-compose up`
+3. Start services: `docker-compose up -d` (detached mode)
 
 **Note**: Migrations and admin user creation are handled automatically by the startup script when the backend container starts.
 
-To run in detached mode (background), use: `docker-compose up -d`
+**Important for Production:**
+- Change `JWT_SECRET` to a strong, random value (minimum 32 characters)
+- Use strong `ADMIN_PASSWORD`
+- Set `NODE_ENV=production` in `backend/.env`
+- Use secure database credentials
+- Configure proper CORS origins in `backend/.env`
+
+## 📄 License
+
+This project is part of a technical assessment and is not licensed for public use.
 

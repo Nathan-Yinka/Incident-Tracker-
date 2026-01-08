@@ -4,11 +4,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto, AuditLog } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { useUsers } from '../hooks/useUsers';
 
 const IncidentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { isAdmin, user } = useAuth();
+  const { data: users } = useUsers();
   const [showAudit, setShowAudit] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const queryClient = useQueryClient();
 
   const { data: incident, isLoading, error } = useQuery({
@@ -39,6 +43,21 @@ const IncidentDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incident', id] });
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async (assignedToId: string) => {
+      const response = await apiClient.patch<ApiResponse<Incident>>(`/incidents/${id}/assign`, {
+        assignedToId: assignedToId || undefined,
+      });
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incident', id] });
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      setShowAssignModal(false);
+      setSelectedUserId('');
     },
   });
 
@@ -119,6 +138,17 @@ const IncidentDetailPage = () => {
             >
               Edit Incident
             </Link>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setSelectedUserId(incident.assignedToId || '');
+                  setShowAssignModal(true);
+                }}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Assign
+              </button>
+            )}
             <button
               onClick={() => setShowAudit(!showAudit)}
               className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -188,6 +218,49 @@ const IncidentDetailPage = () => {
             ) : (
               <div className="text-center py-4 text-gray-500">No audit logs found</div>
             )}
+          </div>
+        )}
+
+        {showAssignModal && isAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Assign Incident</h3>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign To
+                </label>
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="">Unassigned</option>
+                  {users?.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAssignModal(false);
+                    setSelectedUserId('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => assignMutation.mutate(selectedUserId)}
+                  disabled={assignMutation.isPending}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                >
+                  {assignMutation.isPending ? 'Assigning...' : 'Assign'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
