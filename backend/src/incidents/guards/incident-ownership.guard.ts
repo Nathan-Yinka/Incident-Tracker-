@@ -28,16 +28,17 @@ export class IncidentOwnershipGuard extends BaseGuard implements CanActivate {
 
     const incident = await this.prisma.incident.findUnique({
       where: { id: incidentId },
-      select: { userId: true },
+      select: { userId: true, assignedToId: true },
     });
 
     if (!incident) {
       throw new NotFoundException('Incident not found');
     }
 
-    if (incident.userId !== user.id) {
+    const isAssignee = incident.assignedToId === user.id;
+    if (!isAssignee) {
       this.logger.warn(
-        `IncidentOwnershipGuard: User ${user.email} attempted to access incident ${incidentId} owned by ${incident.userId}`,
+        `IncidentOwnershipGuard: User ${user.email} attempted to access incident ${incidentId} without ownership or assignment`,
         'IncidentOwnershipGuard',
       );
       throw new ForbiddenException('You can only access your own incidents');
@@ -46,4 +47,3 @@ export class IncidentOwnershipGuard extends BaseGuard implements CanActivate {
     return true;
   }
 }
-

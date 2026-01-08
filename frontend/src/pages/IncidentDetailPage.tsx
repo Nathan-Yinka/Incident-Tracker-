@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto, AuditLog } from '../types';
@@ -10,6 +10,7 @@ import Loader from '../components/Loader';
 const IncidentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { isAdmin, user } = useAuth();
+  const navigate = useNavigate();
   const { data: users } = useUsers();
   const [showAudit, setShowAudit] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -62,11 +63,23 @@ const IncidentDetailPage = () => {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.delete<ApiResponse<null>>(`/incidents/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      navigate('/incidents');
+    },
+  });
+
   const handleStatusChange = (newStatus: Status) => {
     updateStatusMutation.mutate(newStatus);
   };
 
-  const canEdit = isAdmin || (user?.id === incident?.userId);
+  const canEdit = isAdmin
+    || (user?.id === incident?.assignedToId)
+    || (user?.id === incident?.userId);
 
   if (isLoading) return <div className="text-center py-8"><Loader /></div>;
   if (error) return <div className="text-center py-8 text-red-600">Error loading incident</div>;
@@ -151,6 +164,19 @@ const IncidentDetailPage = () => {
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 Assign
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Delete this incident? This action cannot be undone.')) {
+                    deleteMutation.mutate();
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                className="inline-flex items-center px-4 py-2 border border-red-600 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
               </button>
             )}
             <button
@@ -274,4 +300,3 @@ const IncidentDetailPage = () => {
 };
 
 export default IncidentDetailPage;
-

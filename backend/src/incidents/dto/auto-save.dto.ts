@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { Severity } from '@prisma/client';
 
 export class AutoSaveDto {
@@ -13,5 +13,8 @@ export class AutoSaveDto {
   @IsEnum(Severity)
   @IsOptional()
   severity?: Severity;
-}
 
+  @IsUUID()
+  @IsOptional()
+  assignedToId?: string;
+}

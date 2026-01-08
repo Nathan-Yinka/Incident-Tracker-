@@ -31,11 +31,12 @@ export class IncidentsService extends BaseService<Incident> {
     return this.prisma.incident;
   }
 
-  async create(dto: CreateIncidentDto, userId: string): Promise<Incident> {
+  async create(dto: CreateIncidentDto, userId: string, isAdmin: boolean): Promise<Incident> {
     this.logger.log(`Creating incident for user: ${userId}`, 'IncidentsService');
 
     const isDraft = dto.isDraft ?? false;
     const status = isDraft ? Status.DRAFT : (dto.status || Status.OPEN);
+    const assignedToId = isAdmin ? dto.assignedToId : userId;
 
     const existingDraft = await this.prisma.incident.findFirst({
       where: {
@@ -55,7 +56,7 @@ export class IncidentsService extends BaseService<Incident> {
             description: dto.description,
             severity: dto.severity,
             status,
-            assignedToId: dto.assignedToId,
+            assignedToId,
           },
         });
         this.logger.log(`Updated existing draft: ${incident.id}`, 'IncidentsService');
@@ -68,7 +69,7 @@ export class IncidentsService extends BaseService<Incident> {
             severity: dto.severity,
             status,
             isDraft: false,
-            assignedToId: dto.assignedToId,
+            assignedToId,
           },
         });
         this.logger.log(`Converted draft to incident: ${incident.id}`, 'IncidentsService');
@@ -95,7 +96,7 @@ export class IncidentsService extends BaseService<Incident> {
           status,
           isDraft,
           userId,
-          assignedToId: dto.assignedToId,
+          assignedToId,
         },
       });
       this.logger.log(`Created incident: ${incident.id}`, 'IncidentsService');
@@ -127,9 +128,12 @@ export class IncidentsService extends BaseService<Incident> {
     const where: Prisma.IncidentWhereInput = {};
 
     if (!isAdmin) {
-      where.userId = userId;
+      where.assignedToId = userId;
     } else if (query.userId) {
-      where.userId = query.userId;
+      where.OR = [
+        { userId: query.userId },
+        { assignedToId: query.userId },
+      ];
     }
 
     if (query.severity) {
@@ -288,7 +292,7 @@ export class IncidentsService extends BaseService<Incident> {
     }
   }
 
-  async autoSave(userId: string, dto: AutoSaveDto): Promise<Incident> {
+  async autoSave(userId: string, dto: AutoSaveDto, isAdmin: boolean): Promise<Incident> {
     const existingDraft = await this.getDraft(userId);
 
     if (existingDraft) {
@@ -296,10 +300,12 @@ export class IncidentsService extends BaseService<Incident> {
         title?: string;
         description?: string | null;
         severity?: Severity;
+        assignedToId?: string | null;
       } = {};
       if (dto.title !== undefined) updateData.title = dto.title;
       if (dto.description !== undefined) updateData.description = dto.description;
       if (dto.severity !== undefined) updateData.severity = dto.severity;
+      if (isAdmin && dto.assignedToId !== undefined) updateData.assignedToId = dto.assignedToId;
 
       if (Object.keys(updateData).length === 0) {
         return existingDraft;
@@ -325,6 +331,7 @@ export class IncidentsService extends BaseService<Incident> {
           status: Status.DRAFT,
           isDraft: true,
           userId,
+          assignedToId: isAdmin ? dto.assignedToId || null : userId,
         },
       });
 
@@ -357,4 +364,3 @@ export class IncidentsService extends BaseService<Incident> {
     return updated;
   }
 }
-

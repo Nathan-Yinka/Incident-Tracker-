@@ -34,8 +34,15 @@ export class IncidentsController extends BaseController {
   }
 
   @Post()
-  async create(@Body() createIncidentDto: CreateIncidentDto, @CurrentUser() user: { id: string }) {
-    const incident = await this.incidentsService.create(createIncidentDto, user.id);
+  async create(
+    @Body() createIncidentDto: CreateIncidentDto,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    const incident = await this.incidentsService.create(
+      createIncidentDto,
+      user.id,
+      user.role === 'ADMIN',
+    );
     return this.handleResponse(incident, 'Incident created successfully');
   }
 
@@ -60,8 +67,11 @@ export class IncidentsController extends BaseController {
   }
 
   @Post('auto-save')
-  async autoSave(@Body() autoSaveDto: AutoSaveDto, @CurrentUser() user: { id: string }) {
-    const incident = await this.incidentsService.autoSave(user.id, autoSaveDto);
+  async autoSave(
+    @Body() autoSaveDto: AutoSaveDto,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    const incident = await this.incidentsService.autoSave(user.id, autoSaveDto, user.role === 'ADMIN');
     return this.handleResponse(incident, 'Draft saved');
   }
 
@@ -114,4 +124,3 @@ export class IncidentsController extends BaseController {
     return this.handleResponse(auditLogs, 'Audit logs retrieved successfully');
   }
 }
-
