@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import { ApiResponse, ApiErrorResponse } from '../types';
+import { API_CONFIG } from '../config/api';
+import { APP_ROUTES } from '../config/routes';
 
 // Use relative URL if VITE_API_URL is set to backend service name (Docker)
 // Otherwise use the provided URL or default to localhost
@@ -8,12 +10,14 @@ const getApiUrl = (): string => {
   
   // If VITE_API_URL is set to backend service name (Docker), use relative URL
   // nginx will proxy /api requests to the backend
-  if (envUrl === 'http://backend:3000') {
-    return '/api';
+  if (envUrl === API_CONFIG.dockerBackendUrl) {
+    return API_CONFIG.basePath;
   }
   
   // Otherwise use the provided URL or default
-  return envUrl ? `${envUrl}/api` : 'http://localhost:3000/api';
+  return envUrl
+    ? `${envUrl}${API_CONFIG.basePath}`
+    : `${API_CONFIG.localFallbackUrl}${API_CONFIG.basePath}`;
 };
 
 class ApiClient {
@@ -55,10 +59,10 @@ class ApiClient {
         if (error.response?.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          window.location.href = APP_ROUTES.login;
         }
         if (error.response?.status === 403) {
-          window.location.href = '/access-denied';
+          window.location.href = APP_ROUTES.accessDenied;
         }
         return Promise.reject(error);
       },

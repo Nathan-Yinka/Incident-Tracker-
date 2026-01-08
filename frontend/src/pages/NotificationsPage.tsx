@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { Notification, ApiResponse, PaginatedResponse } from '../types';
 import Loader from '../components/Loader';
+import { API_ROUTES } from '../config/apiRoutes';
+import { routePaths } from '../config/routes';
 
 const NotificationsPage = () => {
   const [page, setPage] = useState(1);
@@ -23,7 +25,7 @@ const NotificationsPage = () => {
       }
 
       const response = await apiClient.get<ApiResponse<PaginatedResponse<Notification> & { unreadCount?: number }>>(
-        `/notifications?${params.toString()}`,
+        `${API_ROUTES.notifications}?${params.toString()}`,
       );
       return response.data.data;
     },
@@ -32,7 +34,9 @@ const NotificationsPage = () => {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiClient.patch<ApiResponse<Notification>>(`/notifications/${id}/read`);
+      const response = await apiClient.patch<ApiResponse<Notification>>(
+        `${API_ROUTES.notifications}/${id}/read`,
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -60,7 +64,7 @@ const NotificationsPage = () => {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      await apiClient.patch<ApiResponse<null>>('/notifications/read-all');
+      await apiClient.patch<ApiResponse<null>>(API_ROUTES.notificationsReadAll);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -137,7 +141,7 @@ const NotificationsPage = () => {
                     <p className="text-sm text-gray-900">{notification.message}</p>
                     {notification.incident && (
                       <Link
-                        to={`/incidents/${notification.incident.id}`}
+                        to={routePaths.incidentDetail(notification.incident.id)}
                         className="text-indigo-600 hover:text-indigo-800 text-sm mt-1 inline-block"
                       >
                         View Incident →
@@ -194,4 +198,3 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
-

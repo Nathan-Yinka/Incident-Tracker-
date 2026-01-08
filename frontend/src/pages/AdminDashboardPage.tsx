@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import AdminUsersPage from './admin/AdminUsersPage';
 import AdminIncidentsPage from './admin/AdminIncidentsPage';
+import { APP_ROUTES } from '../config/routes';
 
 const AdminDashboardPage = () => {
   const location = useLocation();
@@ -13,9 +14,9 @@ const AdminDashboardPage = () => {
         <div className="border-b border-gray-200">
           <nav className="flex -mb-px">
             <Link
-              to="/admin/users"
+              to={APP_ROUTES.adminUsers}
               className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                location.pathname.includes('/admin/users')
+                location.pathname.includes(APP_ROUTES.adminUsers)
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
@@ -23,9 +24,9 @@ const AdminDashboardPage = () => {
               Users
             </Link>
             <Link
-              to="/admin/incidents"
+              to={APP_ROUTES.adminIncidents}
               className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                location.pathname.includes('/admin/incidents')
+                location.pathname.includes(APP_ROUTES.adminIncidents)
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
@@ -48,4 +49,3 @@ const AdminDashboardPage = () => {
 };
 
 export default AdminDashboardPage;
-

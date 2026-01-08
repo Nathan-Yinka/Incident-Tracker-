@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { Notification, ApiResponse, PaginatedResponse } from '../types';
+import { API_ROUTES } from '../config/apiRoutes';
+import { APP_ROUTES, routePaths } from '../config/routes';
 import Loader from './Loader';
 
 const NotificationsDropdown = () => {
@@ -14,7 +16,7 @@ const NotificationsDropdown = () => {
     queryKey: ['notifications-dropdown'],
     queryFn: async () => {
       const response = await apiClient.get<ApiResponse<PaginatedResponse<Notification> & { unreadCount?: number }>>(
-        '/notifications?limit=5',
+        `${API_ROUTES.notifications}?limit=5`,
       );
       return response.data.data;
     },
@@ -23,7 +25,9 @@ const NotificationsDropdown = () => {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiClient.patch<ApiResponse<Notification>>(`/notifications/${id}/read`);
+      const response = await apiClient.patch<ApiResponse<Notification>>(
+        `${API_ROUTES.notifications}/${id}/read`,
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -113,7 +117,7 @@ const NotificationsDropdown = () => {
                         markAsReadMutation.mutate(notification.id);
                       }
                       if (notification.incident) {
-                        window.location.href = `/incidents/${notification.incident.id}`;
+                        window.location.href = routePaths.incidentDetail(notification.incident.id);
                       }
                     }}
                   >
@@ -131,7 +135,7 @@ const NotificationsDropdown = () => {
 
           <div className="p-4 border-t border-gray-200">
             <Link
-              to="/notifications"
+              to={APP_ROUTES.notifications}
               onClick={() => setIsOpen(false)}
               className="block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium"
             >
@@ -145,4 +149,3 @@ const NotificationsDropdown = () => {
 };
 
 export default NotificationsDropdown;
-

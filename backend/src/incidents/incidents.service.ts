@@ -313,11 +313,11 @@ export class IncidentsService extends BaseService<Incident> {
   async delete(id: string, userId: string): Promise<void> {
     const incident = await this.findOne(id);
 
+    await this.auditService.log('DELETED', id, userId, incident, null);
+
     await this.prisma.incident.delete({
       where: { id },
     });
-
-    await this.auditService.log('DELETED', id, userId, incident, null);
 
     this.logger.log(`Deleted incident: ${id}`, 'IncidentsService');
   }

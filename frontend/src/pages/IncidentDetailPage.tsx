@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
-import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto, AuditLog, User } from '../types';
+import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto, AuditLog, User, ApiErrorResponse } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useUsers } from '../hooks/useUsers';
 import Loader from '../components/Loader';
+import ErrorState from '../components/ErrorState';
+import { apiRoutes } from '../config/apiRoutes';
+import { APP_ROUTES, routePaths } from '../config/routes';
 
 const IncidentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,7 +36,7 @@ const IncidentDetailPage = () => {
   const { data: incident, isLoading, error } = useQuery({
     queryKey: ['incident', id],
     queryFn: async () => {
-      const response = await apiClient.get<ApiResponse<Incident>>(`/incidents/${id}`);
+      const response = await apiClient.get<ApiResponse<Incident>>(apiRoutes.incidentById(id!));
       return response.data.data;
     },
   });
@@ -41,7 +44,9 @@ const IncidentDetailPage = () => {
   const { data: auditLogs, isLoading: auditLoading } = useQuery({
     queryKey: ['incident-audit', id],
     queryFn: async () => {
-      const endpoint = isAdmin ? `/admin/audit/${id}` : `/incidents/${id}/audit`;
+      const endpoint = isAdmin
+        ? apiRoutes.adminAuditByIncidentId(id!)
+        : apiRoutes.incidentAudit(id!);
       const response = await apiClient.get<ApiResponse<AuditLog[]>>(endpoint);
       return response.data.data;
     },
@@ -50,7 +55,7 @@ const IncidentDetailPage = () => {
 
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: Status) => {
-      const response = await apiClient.patch<ApiResponse<Incident>>(`/incidents/${id}`, {
+      const response = await apiClient.patch<ApiResponse<Incident>>(apiRoutes.incidentById(id!), {
         status: newStatus,
       } as UpdateIncidentDto);
       return response.data.data;
@@ -63,7 +68,7 @@ const IncidentDetailPage = () => {
 
   const assignMutation = useMutation({
     mutationFn: async (assignedToId: string) => {
-      const response = await apiClient.patch<ApiResponse<Incident>>(`/incidents/${id}/assign`, {
+      const response = await apiClient.patch<ApiResponse<Incident>>(apiRoutes.incidentAssign(id!), {
         assignedToId: assignedToId || undefined,
       });
       return response.data.data;
@@ -78,11 +83,11 @@ const IncidentDetailPage = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      await apiClient.delete<ApiResponse<null>>(`/incidents/${id}`);
+      await apiClient.delete<ApiResponse<null>>(apiRoutes.incidentById(id!));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      navigate('/incidents');
+      navigate(APP_ROUTES.incidents);
     },
   });
 
@@ -94,8 +99,32 @@ const IncidentDetailPage = () => {
     || (user?.id === incident?.assignedToId)
     || (user?.id === incident?.userId);
 
+  const errorStatus = (error as { response?: { status?: number } })?.response?.status;
+  const errorMessage =
+    (error as { response?: { data?: ApiErrorResponse } })?.response?.data?.message
+    || 'Error loading incident';
+
   if (isLoading) return <div className="text-center py-8"><Loader /></div>;
-  if (error) return <div className="text-center py-8 text-red-600">Error loading incident</div>;
+  if (errorStatus === 404) {
+    return (
+      <ErrorState
+        title="Incident not found"
+        message="This incident does not exist or was removed."
+        actionLabel="Back to My Incidents"
+        actionTo={APP_ROUTES.incidents}
+      />
+    );
+  }
+  if (error) {
+    return (
+      <ErrorState
+        title="Something went wrong"
+        message={errorMessage}
+        actionLabel="Back to My Incidents"
+        actionTo={APP_ROUTES.incidents}
+      />
+    );
+  }
   if (!incident) return <div className="text-center py-8">Incident not found</div>;
 
   const formatStatus = (value?: string) => (value ? value.replace('_', ' ') : 'Unknown');
@@ -170,7 +199,7 @@ const IncidentDetailPage = () => {
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <Link
-        to="/incidents"
+        to={APP_ROUTES.incidents}
         className="text-indigo-600 hover:text-indigo-800 mb-4 inline-block"
       >
         ← Back to Incidents
@@ -232,7 +261,7 @@ const IncidentDetailPage = () => {
         {canEdit && (
           <div className="mb-4 flex space-x-2">
             <Link
-              to={`/incidents/${id}/edit`}
+              to={routePaths.incidentEdit(id!)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
             >
               Edit Incident

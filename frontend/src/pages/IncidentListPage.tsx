@@ -5,6 +5,8 @@ import { apiClient } from '../services/apiClient';
 import { Incident, ApiResponse, PaginatedResponse, Severity, Status, User } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import Loader from '../components/Loader';
+import { API_ROUTES } from '../config/apiRoutes';
+import { APP_ROUTES, routePaths } from '../config/routes';
 
 type ViewMode = 'my' | 'all';
 
@@ -37,7 +39,9 @@ const IncidentListPage = () => {
   const { data: usersData } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const response = await apiClient.get<ApiResponse<PaginatedResponse<User>>>('/admin/users?limit=100');
+      const response = await apiClient.get<ApiResponse<PaginatedResponse<User>>>(
+        `${API_ROUTES.adminUsers}?limit=100`,
+      );
       return response.data.data;
     },
     enabled: isAdmin && viewMode === 'all',
@@ -46,7 +50,7 @@ const IncidentListPage = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['incidents', page, severity, status, debouncedSearch, viewMode, isAdmin, user?.id, selectedUserId],
     queryFn: async () => {
-      let endpoint = '/incidents';
+      let endpoint: string = API_ROUTES.incidents;
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '10',
@@ -54,12 +58,12 @@ const IncidentListPage = () => {
       
       if (isAdmin) {
         if (viewMode === 'all') {
-          endpoint = '/incidents/all';
+          endpoint = API_ROUTES.incidentsAll;
           if (selectedUserId) {
             params.append('userId', selectedUserId);
           }
         } else if (viewMode === 'my' && user?.id) {
-          endpoint = '/incidents/all';
+          endpoint = API_ROUTES.incidentsAll;
           params.append('userId', user.id);
         }
       }
@@ -106,7 +110,7 @@ const IncidentListPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Incidents</h1>
         <Link
-          to="/incidents/new"
+          to={APP_ROUTES.incidentNew}
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md text-sm font-medium shadow-sm transition-colors"
         >
           Create Incident
@@ -246,7 +250,7 @@ const IncidentListPage = () => {
                   <tr
                     key={incident.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => window.location.href = `/incidents/${incident.id}`}
+                    onClick={() => window.location.href = routePaths.incidentDetail(incident.id)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{incident.title}</div>

@@ -1,17 +1,18 @@
 import { apiClient } from './apiClient';
 import { LoginDto, User, ApiResponse } from '../types';
+import { API_ROUTES } from '../config/apiRoutes';
 
 export const authService = {
   async login(credentials: LoginDto): Promise<{ accessToken: string; user: User }> {
     const response = await apiClient.post<ApiResponse<{ accessToken: string; user: User }>>(
-      '/auth/login',
+      API_ROUTES.authLogin,
       credentials,
     );
     return response.data.data;
   },
 
   async getMe(): Promise<User> {
-    const response = await apiClient.get<ApiResponse<User>>('/auth/me');
+    const response = await apiClient.get<ApiResponse<User>>(API_ROUTES.authMe);
     return response.data.data;
   },
 
@@ -46,5 +47,4 @@ export const authService = {
     return user?.role === 'ADMIN';
   },
 };
-
 

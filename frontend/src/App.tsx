@@ -10,29 +10,32 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import { APP_ROUTES } from './config/routes';
 
 function App() {
+  const toNestedPath = (route: string) => route.replace(/^\//, '');
+
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path={APP_ROUTES.login} element={<LoginPage />} />
           <Route
-            path="/"
+            path={APP_ROUTES.root}
             element={
               <ProtectedRoute>
                 <Layout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/incidents" replace />} />
-            <Route path="incidents" element={<IncidentListPage />} />
-            <Route path="incidents/new" element={<CreateIncidentPage />} />
-            <Route path="incidents/:id" element={<IncidentDetailPage />} />
-            <Route path="incidents/:id/edit" element={<EditIncidentPage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="access-denied" element={<AccessDeniedPage />} />
-            <Route path="admin/*" element={<AdminDashboardPage />} />
+            <Route index element={<Navigate to={APP_ROUTES.incidents} replace />} />
+            <Route path={toNestedPath(APP_ROUTES.incidents)} element={<IncidentListPage />} />
+            <Route path={toNestedPath(APP_ROUTES.incidentNew)} element={<CreateIncidentPage />} />
+            <Route path={toNestedPath(APP_ROUTES.incidentDetail)} element={<IncidentDetailPage />} />
+            <Route path={toNestedPath(APP_ROUTES.incidentEdit)} element={<EditIncidentPage />} />
+            <Route path={toNestedPath(APP_ROUTES.notifications)} element={<NotificationsPage />} />
+            <Route path={toNestedPath(APP_ROUTES.accessDenied)} element={<AccessDeniedPage />} />
+            <Route path={toNestedPath(APP_ROUTES.admin)} element={<AdminDashboardPage />} />
           </Route>
         </Routes>
       </AuthProvider>

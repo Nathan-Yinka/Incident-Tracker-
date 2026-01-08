@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../services/apiClient';
 import { Incident, ApiResponse, PaginatedResponse, Severity, Status } from '../../types';
 import Loader from '@/components/Loader';
+import { API_ROUTES } from '../../config/apiRoutes';
+import { routePaths } from '../../config/routes';
 
 const AdminIncidentsPage = () => {
   const [page, setPage] = useState(1);
@@ -21,7 +23,7 @@ const AdminIncidentsPage = () => {
       if (status) params.append('status', status);
 
       const response = await apiClient.get<ApiResponse<PaginatedResponse<Incident>>>(
-        `/incidents/all?${params.toString()}`,
+        `${API_ROUTES.incidentsAll}?${params.toString()}`,
       );
       return response.data.data;
     },
@@ -67,7 +69,7 @@ const AdminIncidentsPage = () => {
           {data?.data.map((incident) => (
             <Link
               key={incident.id}
-              to={`/incidents/${incident.id}`}
+              to={routePaths.incidentDetail(incident.id)}
               className="block p-4 hover:bg-gray-50"
             >
               <div className="flex justify-between items-start">
@@ -135,4 +137,3 @@ const AdminIncidentsPage = () => {
 };
 
 export default AdminIncidentsPage;
-

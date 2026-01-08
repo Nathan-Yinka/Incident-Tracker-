@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { APP_ROUTES } from '../config/routes';
 
 const AccessDeniedPage = () => {
   return (
@@ -9,7 +10,7 @@ const AccessDeniedPage = () => {
           You do not have access to this incident or page.
         </p>
         <Link
-          to="/incidents"
+          to={APP_ROUTES.incidents}
           className="mt-6 inline-flex items-center px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
         >
           Back to My Incidents

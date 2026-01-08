@@ -6,6 +6,8 @@ import { CreateIncidentDto, Incident, ApiResponse, Severity } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useUsers } from '../hooks/useUsers';
 import Loader from '../components/Loader';
+import { API_ROUTES } from '../config/apiRoutes';
+import { APP_ROUTES } from '../config/routes';
 
 const CreateIncidentPage = () => {
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ const CreateIncidentPage = () => {
   const { data: draft } = useQuery({
     queryKey: ['draft'],
     queryFn: async () => {
-      const response = await apiClient.get<ApiResponse<Incident | null>>('/incidents/draft');
+      const response = await apiClient.get<ApiResponse<Incident | null>>(API_ROUTES.incidentsDraft);
       return response.data.data;
     },
   });
@@ -47,24 +49,24 @@ const CreateIncidentPage = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateIncidentDto) => {
-      const response = await apiClient.post<ApiResponse<Incident>>('/incidents', data);
+      const response = await apiClient.post<ApiResponse<Incident>>(API_ROUTES.incidents, data);
       return response.data.data;
     },
     onSuccess: () => {
-      navigate('/incidents');
+      navigate(APP_ROUTES.incidents);
     },
   });
 
   const autoSaveMutation = useMutation({
     mutationFn: async (data: Partial<CreateIncidentDto>) => {
-      const response = await apiClient.post<ApiResponse<Incident>>('/incidents/auto-save', data);
+      const response = await apiClient.post<ApiResponse<Incident>>(API_ROUTES.incidentsAutoSave, data);
       return response.data.data;
     },
   });
 
   const deleteDraftMutation = useMutation({
     mutationFn: async () => {
-      await apiClient.delete<ApiResponse<null>>('/incidents/draft');
+      await apiClient.delete<ApiResponse<null>>(API_ROUTES.incidentsDraft);
     },
     onSuccess: () => {
       setHasDraft(false);
@@ -247,7 +249,7 @@ const CreateIncidentPage = () => {
         <div className="flex justify-end space-x-3">
           <button
             type="button"
-            onClick={() => navigate('/incidents')}
+            onClick={() => navigate(APP_ROUTES.incidents)}
             className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Cancel

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { User, ApiResponse, PaginatedResponse } from '../types';
 import { useAuth } from './useAuth';
+import { API_ROUTES } from '../config/apiRoutes';
 
 export const useUsers = () => {
   const { isAdmin } = useAuth();
@@ -11,7 +12,7 @@ export const useUsers = () => {
     queryFn: async () => {
       // Fetch all users (with a reasonable limit)
       const response = await apiClient.get<ApiResponse<PaginatedResponse<User>>>(
-        '/admin/users?page=1&limit=100',
+        `${API_ROUTES.adminUsers}?page=1&limit=100`,
       );
       return response.data.data.data;
     },
@@ -19,4 +20,3 @@ export const useUsers = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };
-

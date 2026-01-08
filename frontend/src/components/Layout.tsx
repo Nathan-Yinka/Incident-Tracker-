@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import NotificationsDropdown from './NotificationsDropdown';
+import { APP_ROUTES, routePaths } from '../config/routes';
 
 const Layout = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -8,7 +9,7 @@ const Layout = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(APP_ROUTES.login);
   };
 
   return (
@@ -22,14 +23,14 @@ const Layout = () => {
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
-                  to="/incidents"
+                  to={APP_ROUTES.incidents}
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   Incidents
                 </Link>
                 {isAdmin && (
                   <Link
-                    to="/admin"
+                    to={routePaths.adminRoot}
                     className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                   >
                     Admin
@@ -59,4 +60,3 @@ const Layout = () => {
 };
 
 export default Layout;
-

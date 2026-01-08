@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Loader from '../components/Loader';
+import { APP_ROUTES } from '../config/routes';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -51,7 +52,7 @@ const LoginPage = () => {
 
     try {
       await login(email, password);
-      navigate('/incidents');
+      navigate(APP_ROUTES.incidents);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || 'Login failed');

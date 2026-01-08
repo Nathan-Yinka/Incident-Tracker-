@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { APP_ROUTES } from '../config/routes';
 import { useAuth } from '../hooks/useAuth';
 import Loader from './Loader';
 
@@ -18,11 +19,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={APP_ROUTES.login} replace />;
   }
 
   return <>{children}</>;
 };
 
 export default ProtectedRoute;
-

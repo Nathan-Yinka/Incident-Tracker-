@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../services/apiClient';
 import { User, ApiResponse, PaginatedResponse, Role, ApiErrorResponse } from '../../types';
 import Loader from '../../components/Loader';
+import { API_ROUTES } from '../../config/apiRoutes';
 
 const AdminUsersPage = () => {
   const [page, setPage] = useState(1);
@@ -28,7 +29,7 @@ const AdminUsersPage = () => {
     queryKey: ['admin-users', page],
     queryFn: async () => {
       const response = await apiClient.get<ApiResponse<PaginatedResponse<User>>>(
-        `/admin/users?page=${page}&limit=10`,
+        `${API_ROUTES.adminUsers}?page=${page}&limit=10`,
       );
       return response.data.data;
     },
@@ -70,7 +71,7 @@ const AdminUsersPage = () => {
 
   const createMutation = useMutation({
     mutationFn: async (userData: { email: string; password: string; role: Role }) => {
-      const response = await apiClient.post<ApiResponse<User>>('/admin/users', userData);
+      const response = await apiClient.post<ApiResponse<User>>(API_ROUTES.adminUsers, userData);
       return response.data.data;
     },
     onSuccess: () => {
@@ -95,7 +96,10 @@ const AdminUsersPage = () => {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: Role }) => {
-      const response = await apiClient.patch<ApiResponse<User>>(`/admin/users/${userId}/role`, { role });
+      const response = await apiClient.patch<ApiResponse<User>>(
+        `${API_ROUTES.adminUsers}/${userId}/role`,
+        { role },
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -112,7 +116,10 @@ const AdminUsersPage = () => {
 
   const changePasswordMutation = useMutation({
     mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
-      await apiClient.patch<ApiResponse<null>>(`/admin/users/${userId}/password`, { newPassword });
+      await apiClient.patch<ApiResponse<null>>(
+        `${API_ROUTES.adminUsers}/${userId}/password`,
+        { newPassword },
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
