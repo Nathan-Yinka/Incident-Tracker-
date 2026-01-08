@@ -11,7 +11,7 @@ const EditIncidentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user: currentUser } = useAuth();
   const { data: users } = useUsers();
 
   const { data: incident, isLoading } = useQuery({
@@ -143,10 +143,10 @@ const EditIncidentPage = () => {
               onChange={(e) => setAssignedToId(e.target.value)}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             >
-              <option value="">Unassigned</option>
-              {users?.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.email}
+              {currentUser?.id && <option value={currentUser.id}>Me</option>}
+              {users?.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.email}
                 </option>
               ))}
             </select>
@@ -176,4 +176,3 @@ const EditIncidentPage = () => {
 };
 
 export default EditIncidentPage;
-

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
-import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto, AuditLog } from '../types';
+import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto, AuditLog, User } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useUsers } from '../hooks/useUsers';
 import Loader from '../components/Loader';
@@ -12,10 +12,23 @@ const IncidentDetailPage = () => {
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const { data: users } = useUsers();
+  const usersById = users?.reduce<Record<string, User>>((acc, current) => {
+    acc[current.id] = current;
+    return acc;
+  }, {});
   const [showAudit, setShowAudit] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [now, setNow] = useState(Date.now());
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!showAudit) return;
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+    return () => window.clearInterval(intervalId);
+  }, [showAudit]);
 
   const { data: incident, isLoading, error } = useQuery({
     queryKey: ['incident', id],
@@ -84,6 +97,75 @@ const IncidentDetailPage = () => {
   if (isLoading) return <div className="text-center py-8"><Loader /></div>;
   if (error) return <div className="text-center py-8 text-red-600">Error loading incident</div>;
   if (!incident) return <div className="text-center py-8">Incident not found</div>;
+
+  const formatStatus = (value?: string) => (value ? value.replace('_', ' ') : 'Unknown');
+  const formatRelativeTime = (timestamp: string) => {
+    const diffMs = now - new Date(timestamp).getTime();
+    if (diffMs < 0) return 'just now';
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 1) return 'just now';
+    if (diffMinutes < 60) return `${diffMinutes} min ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  };
+  const formatAssignedLabel = (assignedToId?: string | null) => {
+    if (!assignedToId) return 'Unassigned';
+    if (assignedToId === user?.id) return 'you';
+    return usersById?.[assignedToId]?.email || `user ${assignedToId}`;
+  };
+  const formatAuditMessage = (log: AuditLog) => {
+    const oldValue = (log.oldValue || {}) as Record<string, unknown>;
+    const newValue = (log.newValue || {}) as Record<string, unknown>;
+    const actor = log.user?.email || 'Someone';
+    const formatChangeList = (items: string[]) => {
+      if (items.length === 0) return '';
+      if (items.length === 1) return items[0];
+      if (items.length === 2) return `${items[0]} and ${items[1]}`;
+      return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+    };
+
+    switch (log.action) {
+      case 'CREATED':
+        return `${actor} created the incident`;
+      case 'DELETED':
+        return `${actor} deleted the incident`;
+      case 'STATUS_CHANGED': {
+        const oldStatus = oldValue.status as string | undefined;
+        const newStatus = newValue.status as string | undefined;
+        if (oldStatus && newStatus) {
+          return `${actor} changed the status from ${formatStatus(oldStatus)} to ${formatStatus(newStatus)}`;
+        }
+        return `${actor} updated the status`;
+      }
+      case 'ASSIGNED': {
+        const oldAssigned = (oldValue.assignedToId as string | null | undefined) || null;
+        const newAssigned = (newValue.assignedToId as string | null | undefined) || null;
+        if (!newAssigned) {
+          return `${actor} unassigned the incident`;
+        }
+        if (!oldAssigned) {
+          return `${actor} assigned the incident to ${formatAssignedLabel(newAssigned)}`;
+        }
+        if (oldAssigned !== newAssigned) {
+          return `${actor} reassigned the incident from ${formatAssignedLabel(oldAssigned)} to ${formatAssignedLabel(newAssigned)}`;
+        }
+        return `${actor} assigned the incident to ${formatAssignedLabel(newAssigned)}`;
+      }
+      case 'UPDATED': {
+        const changes: string[] = [];
+        if ('title' in newValue || 'title' in oldValue) changes.push('title');
+        if ('description' in newValue || 'description' in oldValue) changes.push('description');
+        if ('severity' in newValue || 'severity' in oldValue) changes.push('severity');
+        if ('isDraft' in newValue || 'isDraft' in oldValue) changes.push('draft status');
+        const list = formatChangeList(changes);
+        return list ? `${actor} updated ${list}` : `${actor} updated the incident`;
+      }
+      default:
+        return `${actor} ${log.action.replace('_', ' ').toLowerCase()}`;
+    }
+  };
 
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
@@ -233,12 +315,9 @@ const IncidentDetailPage = () => {
                   <div key={log.id} className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{log.action}</p>
-                        {log.user && (
-                          <p className="text-xs text-gray-500 mt-1">By: {log.user.email}</p>
-                        )}
+                        <p className="text-sm font-medium text-gray-900">{formatAuditMessage(log)}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(log.createdAt).toLocaleString()}
+                          {formatRelativeTime(log.createdAt)} · {new Date(log.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>

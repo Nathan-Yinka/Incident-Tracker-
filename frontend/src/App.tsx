@@ -7,6 +7,7 @@ import IncidentDetailPage from './pages/IncidentDetailPage';
 import EditIncidentPage from './pages/EditIncidentPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AccessDeniedPage from './pages/AccessDeniedPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -30,6 +31,7 @@ function App() {
             <Route path="incidents/:id" element={<IncidentDetailPage />} />
             <Route path="incidents/:id/edit" element={<EditIncidentPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="access-denied" element={<AccessDeniedPage />} />
             <Route path="admin/*" element={<AdminDashboardPage />} />
           </Route>
         </Routes>
@@ -39,4 +41,3 @@ function App() {
 }
 
 export default App;
-

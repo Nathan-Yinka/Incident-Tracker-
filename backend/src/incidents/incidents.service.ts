@@ -245,7 +245,56 @@ export class IncidentsService extends BaseService<Incident> {
       data: updateData,
     });
 
-    await this.auditService.log('UPDATED', id, userId, existing, updated);
+    const auditPromises: Promise<unknown>[] = [];
+    const isStatusChanged = existing.status !== updated.status;
+    const isAssignedChanged = existing.assignedToId !== updated.assignedToId;
+    const generalOldValue: Record<string, unknown> = {};
+    const generalNewValue: Record<string, unknown> = {};
+    const trackChange = (key: string, oldValue: unknown, newValue: unknown) => {
+      if (oldValue !== newValue) {
+        generalOldValue[key] = oldValue;
+        generalNewValue[key] = newValue;
+      }
+    };
+
+    if (isStatusChanged) {
+      auditPromises.push(
+        this.auditService.log(
+          'STATUS_CHANGED',
+          id,
+          userId,
+          { status: existing.status },
+          { status: updated.status },
+        ),
+      );
+    }
+
+    if (isAssignedChanged) {
+      auditPromises.push(
+        this.auditService.log(
+          'ASSIGNED',
+          id,
+          userId,
+          { assignedToId: existing.assignedToId },
+          { assignedToId: updated.assignedToId },
+        ),
+      );
+    }
+
+    trackChange('title', existing.title, updated.title);
+    trackChange('description', existing.description, updated.description);
+    trackChange('severity', existing.severity, updated.severity);
+    trackChange('isDraft', existing.isDraft, updated.isDraft);
+
+    if (Object.keys(generalOldValue).length > 0) {
+      auditPromises.push(
+        this.auditService.log('UPDATED', id, userId, generalOldValue, generalNewValue),
+      );
+    }
+
+    if (auditPromises.length > 0) {
+      await Promise.all(auditPromises);
+    }
 
     if (dto.assignedToId && dto.assignedToId !== existing.assignedToId) {
       await this.notificationsService.createForUser(
@@ -350,7 +399,13 @@ export class IncidentsService extends BaseService<Incident> {
       },
     });
 
-    await this.auditService.log('UPDATED', id, adminId, incident, updated);
+    await this.auditService.log(
+      'ASSIGNED',
+      id,
+      adminId,
+      { assignedToId: incident.assignedToId },
+      { assignedToId: updated.assignedToId },
+    );
 
     await this.notificationsService.createForUser(
       dto.assignedToId,
