@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Status {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum NotificationType {
+  INCIDENT_CREATED
+  INCIDENT_UPDATED
+  INCIDENT_ASSIGNED
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         Role      @default(USER)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  createdIncidents    Incident[]        @relation("IncidentCreator")
+  assignedIncidents   Incident[]        @relation("IncidentAssignee")
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+
+  @@map("users")
+}
+
+model Incident {
+  id           String    @id @default(uuid())
+  title        String
+  description  String?   @db.Text
+  severity     Severity
+  status       Status    @default(OPEN)
+  isDraft      Boolean   @default(false) @map("is_draft")
+  userId       String    @map("user_id")
+  assignedToId String?   @map("assigned_to_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user         User      @relation("IncidentCreator", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo   User?     @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+  auditLogs    AuditLog[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([severity])
+  @@map("incidents")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  incidentId String   @map("incident_id")
+  userId     String   @map("user_id")
+  action     String
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([incidentId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String           @map("user_id")
+  incidentId String?          @map("incident_id")
+  type       NotificationType
+  message    String
+  isRead     Boolean          @default(false) @map("is_read")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  incident Incident?  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
