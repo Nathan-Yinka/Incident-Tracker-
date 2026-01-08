@@ -1,14 +1,27 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import { ApiResponse, ApiErrorResponse } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Use relative URL if VITE_API_URL is set to backend service name (Docker)
+// Otherwise use the provided URL or default to localhost
+const getApiUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  
+  // If VITE_API_URL is set to backend service name (Docker), use relative URL
+  // nginx will proxy /api requests to the backend
+  if (envUrl === 'http://backend:3000') {
+    return '/api';
+  }
+  
+  // Otherwise use the provided URL or default
+  return envUrl ? `${envUrl}/api` : 'http://localhost:3000/api';
+};
 
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: `${API_URL}/api`,
+      baseURL: getApiUrl(),
       headers: {
         'Content-Type': 'application/json',
       },

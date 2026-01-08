@@ -6,10 +6,19 @@ interface HealthCheckData {
   uptime: number;
 }
 
-@Controller('health')
+@Controller()
 export class HealthController {
   @Get()
-  check(): HealthCheckData {
+  root(): HealthCheckData {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
+  }
+
+  @Get('health')
+  health(): HealthCheckData {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
