@@ -1,9 +1,21 @@
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'USER');
+
+-- CreateEnum
+CREATE TYPE "Severity" AS ENUM ('LOW', 'MEDIUM', 'HIGH');
+
+-- CreateEnum
+CREATE TYPE "Status" AS ENUM ('DRAFT', 'OPEN', 'IN_PROGRESS', 'RESOLVED');
+
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('INCIDENT_CREATED', 'INCIDENT_UPDATED', 'INCIDENT_ASSIGNED');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "email" TEXT NOT NULL,
     "password_hash" TEXT NOT NULL,
-    "role" TEXT NOT NULL DEFAULT 'USER',
+    "role" "Role" NOT NULL DEFAULT 'USER',
     "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP NOT NULL
 );
@@ -13,8 +25,8 @@ CREATE TABLE "incidents" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
     "description" TEXT,
-    "severity" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'OPEN',
+    "severity" "Severity" NOT NULL,
+    "status" "Status" NOT NULL DEFAULT 'OPEN',
     "is_draft" BOOLEAN NOT NULL DEFAULT false,
     "user_id" TEXT NOT NULL,
     "assigned_to_id" TEXT,
@@ -42,7 +54,7 @@ CREATE TABLE "notifications" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "user_id" TEXT NOT NULL,
     "incident_id" TEXT,
-    "type" TEXT NOT NULL,
+    "type" "NotificationType" NOT NULL,
     "message" TEXT NOT NULL,
     "is_read" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
