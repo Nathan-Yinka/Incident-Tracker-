@@ -5,6 +5,7 @@ import { apiClient } from '../services/apiClient';
 import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useUsers } from '../hooks/useUsers';
+import Loader from '../components/Loader';
 
 const EditIncidentPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,7 +61,7 @@ const EditIncidentPage = () => {
     });
   };
 
-  if (isLoading) return <div className="text-center py-8">Loading...</div>;
+  if (isLoading) return <div className="text-center py-8"><Loader /></div>;
   if (!incident) return <div className="text-center py-8">Incident not found</div>;
 
   return (
@@ -155,9 +156,10 @@ const EditIncidentPage = () => {
         <div className="flex space-x-4">
           <button
             type="submit"
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="inline-flex items-center justify-center gap-2 py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             disabled={updateMutation.isPending}
           >
+            {updateMutation.isPending && <Loader />}
             {updateMutation.isPending ? 'Updating...' : 'Update Incident'}
           </button>
           <button

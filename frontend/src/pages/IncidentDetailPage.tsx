@@ -5,6 +5,7 @@ import { apiClient } from '../services/apiClient';
 import { Incident, ApiResponse, Severity, Status, UpdateIncidentDto, AuditLog } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useUsers } from '../hooks/useUsers';
+import Loader from '../components/Loader';
 
 const IncidentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -67,7 +68,7 @@ const IncidentDetailPage = () => {
 
   const canEdit = isAdmin || (user?.id === incident?.userId);
 
-  if (isLoading) return <div className="text-center py-8">Loading...</div>;
+  if (isLoading) return <div className="text-center py-8"><Loader /></div>;
   if (error) return <div className="text-center py-8 text-red-600">Error loading incident</div>;
   if (!incident) return <div className="text-center py-8">Incident not found</div>;
 
@@ -96,24 +97,27 @@ const IncidentDetailPage = () => {
               {incident.severity}
             </span>
             {canEdit ? (
-              <select
-                value={incident.status}
-                onChange={(e) => handleStatusChange(e.target.value as Status)}
-                disabled={updateStatusMutation.isPending}
-                className={`px-3 py-1 text-sm font-medium rounded border ${
-                  incident.status === Status.RESOLVED
-                    ? 'bg-green-100 text-green-800 border-green-300'
-                    : incident.status === Status.IN_PROGRESS
-                    ? 'bg-blue-100 text-blue-800 border-blue-300'
-                    : 'bg-gray-100 text-gray-800 border-gray-300'
-                } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-              >
-                {Object.values(Status).filter((s) => s !== Status.DRAFT).map((s) => (
-                  <option key={s} value={s}>
-                    {s.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
+              <div className="relative flex items-center gap-2">
+                <select
+                  value={incident.status}
+                  onChange={(e) => handleStatusChange(e.target.value as Status)}
+                  disabled={updateStatusMutation.isPending}
+                  className={`px-3 py-1 text-sm font-medium rounded border ${
+                    incident.status === Status.RESOLVED
+                      ? 'bg-green-100 text-green-800 border-green-300'
+                      : incident.status === Status.IN_PROGRESS
+                      ? 'bg-blue-100 text-blue-800 border-blue-300'
+                      : 'bg-gray-100 text-gray-800 border-gray-300'
+                  } focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50`}
+                >
+                  {Object.values(Status).filter((s) => s !== Status.DRAFT).map((s) => (
+                    <option key={s} value={s}>
+                      {s.replace('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+                {updateStatusMutation.isPending && <Loader size="sm" />}
+              </div>
             ) : (
               <span
                 className={`px-3 py-1 text-sm font-medium rounded ${
@@ -196,7 +200,7 @@ const IncidentDetailPage = () => {
           <div className="mt-6 border-t border-gray-200 pt-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Audit Trail</h3>
             {auditLoading ? (
-              <div className="text-center py-4">Loading audit trail...</div>
+              <div className="text-center py-4"><Loader /></div>
             ) : auditLogs && auditLogs.length > 0 ? (
               <div className="space-y-3">
                 {auditLogs.map((log) => (
@@ -255,8 +259,9 @@ const IncidentDetailPage = () => {
                 <button
                   onClick={() => assignMutation.mutate(selectedUserId)}
                   disabled={assignMutation.isPending}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50 flex items-center gap-2"
                 >
+                  {assignMutation.isPending && <Loader />}
                   {assignMutation.isPending ? 'Assigning...' : 'Assign'}
                 </button>
               </div>

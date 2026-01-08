@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { Notification, ApiResponse, PaginatedResponse } from '../types';
+import Loader from './Loader';
 
 const NotificationsDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -96,7 +97,9 @@ const NotificationsDropdown = () => {
 
           <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
-              <div className="p-4 text-center text-gray-500">Loading...</div>
+              <div className="p-4 text-center">
+                <Loader />
+              </div>
             ) : notifications.length > 0 ? (
               <div className="divide-y divide-gray-200">
                 {notifications.map((notification) => (

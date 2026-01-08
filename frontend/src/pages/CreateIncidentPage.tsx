@@ -5,10 +5,11 @@ import { apiClient } from '../services/apiClient';
 import { CreateIncidentDto, Incident, ApiResponse, Severity } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useUsers } from '../hooks/useUsers';
+import Loader from '../components/Loader';
 
 const CreateIncidentPage = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { data: users } = useUsers();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -110,6 +111,13 @@ const CreateIncidentPage = () => {
     };
   }, []);
 
+  // Set default assignedToId to admin's own ID when admin creates incident (if no draft)
+  useEffect(() => {
+    if (isAdmin && user?.id && !draft && !assignedToId) {
+      setAssignedToId(user.id);
+    }
+  }, [isAdmin, user?.id, draft, assignedToId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate({
@@ -155,8 +163,9 @@ const CreateIncidentPage = () => {
             <button
               onClick={handleStartNew}
               disabled={deleteDraftMutation.isPending}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm font-medium disabled:opacity-50 flex items-center gap-2"
             >
+              {deleteDraftMutation.isPending && <Loader />}
               {deleteDraftMutation.isPending ? 'Deleting...' : 'Start New'}
             </button>
           </div>
@@ -229,7 +238,10 @@ const CreateIncidentPage = () => {
         )}
 
         {autoSaveMutation.isPending && (
-          <div className="text-sm text-gray-500 mb-4">Saving draft...</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+            <Loader />
+            <span>Saving draft...</span>
+          </div>
         )}
 
         <div className="flex justify-end space-x-3">
@@ -243,8 +255,9 @@ const CreateIncidentPage = () => {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50 flex items-center gap-2"
           >
+            {createMutation.isPending && <Loader />}
             {createMutation.isPending ? 'Creating...' : 'Create Incident'}
           </button>
         </div>

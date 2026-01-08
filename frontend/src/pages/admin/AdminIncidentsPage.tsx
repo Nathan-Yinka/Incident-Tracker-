@@ -26,7 +26,7 @@ const AdminIncidentsPage = () => {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div className="text-center py-8"><Loader /></div>;
 
   return (
     <div>

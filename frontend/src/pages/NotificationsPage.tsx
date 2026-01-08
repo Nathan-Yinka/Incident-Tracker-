@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
 import { Notification, ApiResponse, PaginatedResponse } from '../types';
+import Loader from '../components/Loader';
 
 const NotificationsPage = () => {
   const [page, setPage] = useState(1);
@@ -67,7 +68,7 @@ const NotificationsPage = () => {
     },
   });
 
-  if (isLoading) return <div className="text-center py-8">Loading...</div>;
+  if (isLoading) return <div className="text-center py-8"><Loader /></div>;
 
   const unreadCount = (data as PaginatedResponse<Notification> & { unreadCount?: number })?.unreadCount || 0;
 
@@ -86,8 +87,9 @@ const NotificationsPage = () => {
           <button
             onClick={() => markAllAsReadMutation.mutate()}
             disabled={markAllAsReadMutation.isPending}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 flex items-center gap-2"
           >
+            {markAllAsReadMutation.isPending && <Loader />}
             {markAllAsReadMutation.isPending ? 'Marking...' : 'Mark All as Read'}
           </button>
         )}
@@ -149,8 +151,9 @@ const NotificationsPage = () => {
                     <button
                       onClick={() => markAsReadMutation.mutate(notification.id)}
                       disabled={markAsReadMutation.isPending}
-                      className="ml-4 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                      className="ml-4 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50 flex items-center gap-2"
                     >
+                      {markAsReadMutation.isPending && <Loader />}
                       Mark as read
                     </button>
                   )}
